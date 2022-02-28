@@ -20,7 +20,7 @@ function useProvideMain() {
     const { socket, user } = useAuth()
     const [isGroup, setIsGroup] = useState(false)
     const [conversation, setConversation] = useState()
-    const [groupConversation, setGroupConversation] = useState({})
+    const [groupConversation, setGroupConversation] = useState()
     const [userInfo, setUserInfo] = useState(
         JSON.parse(localStorage.getItem('user_info'))
     )
@@ -41,7 +41,6 @@ function useProvideMain() {
     const handleSubmitSendMessage = (e, kind = 'text') => {
         const now = new Date().toISOString()
         const { _id } = conversation || groupConversation || {}
-        const g = !!groupConversation
         console.log("conversation: ", conversation)
         console.log(">>>>>>>>>: ", id, _id)
         socket.emit(SEND_MESSAGE, {
@@ -52,11 +51,11 @@ function useProvideMain() {
                 content: e,
             },
             conversationId: _id || '',
-            group: g,
+            group: isGroup,
         })
 
-        const newCon = (x) =>
-        x
+        const newCon = (x) => 
+            x
             ? {
                 ...x,
                 messages: [
@@ -82,7 +81,9 @@ function useProvideMain() {
                     },
                 ],
             }
-        g ? setGroupConversation(newCon) : setConversation(newCon)
+        
+        isGroup ? setGroupConversation(newCon)
+        : setConversation(newCon)
     }
 
     useEffect(() => {
@@ -126,11 +127,15 @@ function useProvideMain() {
                 if (res.status === 200) {
                     if (res.data) {
                         const { data : conversations} = res || {}
-                        setGroupConversation(conversations)
-                        const { _id } = conversations
-                        sessionStorage.setItem('conversationId', _id)
-                    } else {
-                        setGroupConversation({})
+                        console.log("conversationsssss: ", conversations)
+                        if(conversations?.messages !== undefined){
+                            setIsGroup(true)
+                            setGroupConversation(conversations)
+                            const { _id } = conversations
+                            sessionStorage.setItem('conversationId', _id)
+                        }else{
+                            setIsGroup(false)
+                        }
                     }
                 } else {
                     // console.log('err', data)
@@ -139,6 +144,9 @@ function useProvideMain() {
                 // console.log(error)
             }
         }
+        // setInterval(
+        //     fetchConversation, 100
+        // )
         id && fetchConversation()
     }, [id])
 
